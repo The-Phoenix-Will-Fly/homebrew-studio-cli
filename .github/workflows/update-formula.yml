@@ -1,0 +1,84 @@
+name: Update Homebrew Formula
+
+on:
+  repository_dispatch:
+    types: [update-formula]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (without v prefix)'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version info
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.client_payload.repo }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "repo=The-Phoenix-Will-Fly/studio-on-rails" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download checksums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="${{ steps.version.outputs.repo }}"
+          BASE_URL="https://github.com/${REPO}/releases/download/cli-v${VERSION}"
+
+          echo "Downloading checksums for v${VERSION}..."
+
+          curl -fsSL "${BASE_URL}/studio-x86_64-apple-darwin.tar.gz.sha256" -o macos-intel.sha256
+          curl -fsSL "${BASE_URL}/studio-aarch64-apple-darwin.tar.gz.sha256" -o macos-arm.sha256
+          curl -fsSL "${BASE_URL}/studio-x86_64-unknown-linux-gnu.tar.gz.sha256" -o linux-intel.sha256
+          curl -fsSL "${BASE_URL}/studio-aarch64-unknown-linux-gnu.tar.gz.sha256" -o linux-arm.sha256
+
+          echo "MACOS_INTEL_SHA256=$(cut -d' ' -f1 macos-intel.sha256)" >> $GITHUB_ENV
+          echo "MACOS_ARM_SHA256=$(cut -d' ' -f1 macos-arm.sha256)" >> $GITHUB_ENV
+          echo "LINUX_INTEL_SHA256=$(cut -d' ' -f1 linux-intel.sha256)" >> $GITHUB_ENV
+          echo "LINUX_ARM_SHA256=$(cut -d' ' -f1 linux-arm.sha256)" >> $GITHUB_ENV
+
+      - name: Update formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          FORMULA="Formula/studio.rb"
+
+          echo "Updating formula to v${VERSION}..."
+
+          # Update version
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" "$FORMULA"
+
+          # Update SHA256 hashes using perl for reliable multi-line editing
+          perl -i -pe "s/PLACEHOLDER_MACOS_INTEL_SHA256/${MACOS_INTEL_SHA256}/" "$FORMULA"
+          perl -i -pe "s/PLACEHOLDER_MACOS_ARM_SHA256/${MACOS_ARM_SHA256}/" "$FORMULA"
+          perl -i -pe "s/PLACEHOLDER_LINUX_INTEL_SHA256/${LINUX_INTEL_SHA256}/" "$FORMULA"
+          perl -i -pe "s/PLACEHOLDER_LINUX_ARM_SHA256/${LINUX_ARM_SHA256}/" "$FORMULA"
+
+          # For subsequent updates, replace actual hashes
+          perl -i -0pe "s/(on_macos do\s+on_intel do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${MACOS_INTEL_SHA256}/s" "$FORMULA"
+          perl -i -0pe "s/(on_macos do.*?on_arm do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${MACOS_ARM_SHA256}/s" "$FORMULA"
+          perl -i -0pe "s/(on_linux do\s+on_intel do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${LINUX_INTEL_SHA256}/s" "$FORMULA"
+          perl -i -0pe "s/(on_linux do.*?on_arm do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${LINUX_ARM_SHA256}/s" "$FORMULA"
+
+          echo "Updated formula:"
+          cat "$FORMULA"
+
+      - name: Commit and push
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add Formula/studio.rb
+          git diff --staged --quiet || git commit -m "studio: update to v${VERSION}"
+          git push
