@@ -30,7 +30,7 @@ jobs:
       - name: Download and compute checksums
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          BASE_URL="https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v${VERSION}"
+          BASE_URL="https://github.com/the-phoenix-will-fly/studio-cli/releases/download/v${VERSION}"
 
           echo "Downloading release artifacts for v${VERSION}..."
 
@@ -74,24 +74,24 @@ jobs:
 
             on_macos do
               on_intel do
-                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_darwin_amd64.tar.gz"
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_darwin_amd64.tar.gz"
                 sha256 "DARWIN_AMD64_SHA256_PLACEHOLDER"
               end
 
               on_arm do
-                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_darwin_arm64.tar.gz"
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_darwin_arm64.tar.gz"
                 sha256 "DARWIN_ARM64_SHA256_PLACEHOLDER"
               end
             end
 
             on_linux do
               on_intel do
-                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_linux_amd64.tar.gz"
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_linux_amd64.tar.gz"
                 sha256 "LINUX_AMD64_SHA256_PLACEHOLDER"
               end
 
               on_arm do
-                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_linux_arm64.tar.gz"
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_linux_arm64.tar.gz"
                 sha256 "LINUX_ARM64_SHA256_PLACEHOLDER"
               end
             end

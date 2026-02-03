@@ -14,24 +14,24 @@ class Studio < Formula
 
   on_macos do
     on_intel do
-      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_darwin_amd64.tar.gz"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/v#{version}/studio_#{version}_darwin_amd64.tar.gz"
       sha256 "PLACEHOLDER_SHA256"
     end
 
     on_arm do
-      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_darwin_arm64.tar.gz"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/v#{version}/studio_#{version}_darwin_arm64.tar.gz"
       sha256 "PLACEHOLDER_SHA256"
     end
   end
 
   on_linux do
     on_intel do
-      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_linux_amd64.tar.gz"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/v#{version}/studio_#{version}_linux_amd64.tar.gz"
       sha256 "PLACEHOLDER_SHA256"
     end
 
     on_arm do
-      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_linux_arm64.tar.gz"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/v#{version}/studio_#{version}_linux_arm64.tar.gz"
       sha256 "PLACEHOLDER_SHA256"
     end
   end
