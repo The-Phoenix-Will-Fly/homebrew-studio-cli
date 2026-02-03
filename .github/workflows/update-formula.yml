@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to update to (without v prefix)'
+        description: 'Version to update to (without v prefix, e.g., 1.0.0)'
         required: true
 
 jobs:
@@ -23,51 +23,101 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
-            echo "repo=${{ github.event.client_payload.repo }}" >> $GITHUB_OUTPUT
           else
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "repo=The-Phoenix-Will-Fly/studio-on-rails" >> $GITHUB_OUTPUT
           fi
 
-      - name: Download checksums
+      - name: Download and compute checksums
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          REPO="${{ steps.version.outputs.repo }}"
-          BASE_URL="https://github.com/${REPO}/releases/download/cli-v${VERSION}"
+          BASE_URL="https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v${VERSION}"
 
-          echo "Downloading checksums for v${VERSION}..."
+          echo "Downloading release artifacts for v${VERSION}..."
 
-          curl -fsSL "${BASE_URL}/studio-x86_64-apple-darwin.tar.gz.sha256" -o macos-intel.sha256
-          curl -fsSL "${BASE_URL}/studio-aarch64-apple-darwin.tar.gz.sha256" -o macos-arm.sha256
-          curl -fsSL "${BASE_URL}/studio-x86_64-unknown-linux-gnu.tar.gz.sha256" -o linux-intel.sha256
-          curl -fsSL "${BASE_URL}/studio-aarch64-unknown-linux-gnu.tar.gz.sha256" -o linux-arm.sha256
-
-          echo "MACOS_INTEL_SHA256=$(cut -d' ' -f1 macos-intel.sha256)" >> $GITHUB_ENV
-          echo "MACOS_ARM_SHA256=$(cut -d' ' -f1 macos-arm.sha256)" >> $GITHUB_ENV
-          echo "LINUX_INTEL_SHA256=$(cut -d' ' -f1 linux-intel.sha256)" >> $GITHUB_ENV
-          echo "LINUX_ARM_SHA256=$(cut -d' ' -f1 linux-arm.sha256)" >> $GITHUB_ENV
+          # Download each archive and compute SHA256
+          for platform in darwin_amd64 darwin_arm64 linux_amd64 linux_arm64; do
+            file="studio_${VERSION}_${platform}.tar.gz"
+            echo "Downloading ${file}..."
+            curl -fsSL "${BASE_URL}/${file}" -o "${file}"
+            sha256sum "${file}" | cut -d' ' -f1 > "${platform}.sha256"
+            echo "${platform}: $(cat ${platform}.sha256)"
+          done
 
       - name: Update formula
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           FORMULA="Formula/studio.rb"
 
+          # Read SHA256 values
+          DARWIN_AMD64_SHA256=$(cat darwin_amd64.sha256)
+          DARWIN_ARM64_SHA256=$(cat darwin_arm64.sha256)
+          LINUX_AMD64_SHA256=$(cat linux_amd64.sha256)
+          LINUX_ARM64_SHA256=$(cat linux_arm64.sha256)
+
           echo "Updating formula to v${VERSION}..."
 
-          # Update version
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" "$FORMULA"
+          # Create updated formula
+          cat > "$FORMULA" << 'FORMULA_EOF'
+          # typed: false
+          # frozen_string_literal: true
 
-          # Update SHA256 hashes using perl for reliable multi-line editing
-          perl -i -pe "s/PLACEHOLDER_MACOS_INTEL_SHA256/${MACOS_INTEL_SHA256}/" "$FORMULA"
-          perl -i -pe "s/PLACEHOLDER_MACOS_ARM_SHA256/${MACOS_ARM_SHA256}/" "$FORMULA"
-          perl -i -pe "s/PLACEHOLDER_LINUX_INTEL_SHA256/${LINUX_INTEL_SHA256}/" "$FORMULA"
-          perl -i -pe "s/PLACEHOLDER_LINUX_ARM_SHA256/${LINUX_ARM_SHA256}/" "$FORMULA"
+          # Homebrew formula for Tokens Studio CLI
+          #
+          # Install: brew install the-phoenix-will-fly/studio-cli/studio
+          # Or:      brew tap the-phoenix-will-fly/studio-cli && brew install studio
 
-          # For subsequent updates, replace actual hashes
-          perl -i -0pe "s/(on_macos do\s+on_intel do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${MACOS_INTEL_SHA256}/s" "$FORMULA"
-          perl -i -0pe "s/(on_macos do.*?on_arm do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${MACOS_ARM_SHA256}/s" "$FORMULA"
-          perl -i -0pe "s/(on_linux do\s+on_intel do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${LINUX_INTEL_SHA256}/s" "$FORMULA"
-          perl -i -0pe "s/(on_linux do.*?on_arm do\s+url[^\n]+\n\s+sha256 \")[^\"]+/\${1}${LINUX_ARM_SHA256}/s" "$FORMULA"
+          class Studio < Formula
+            desc "Tokens Studio CLI for design token management"
+            homepage "https://tokens.studio"
+            version "VERSION_PLACEHOLDER"
+            license "MIT"
+
+            on_macos do
+              on_intel do
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_darwin_amd64.tar.gz"
+                sha256 "DARWIN_AMD64_SHA256_PLACEHOLDER"
+              end
+
+              on_arm do
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_darwin_arm64.tar.gz"
+                sha256 "DARWIN_ARM64_SHA256_PLACEHOLDER"
+              end
+            end
+
+            on_linux do
+              on_intel do
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_linux_amd64.tar.gz"
+                sha256 "LINUX_AMD64_SHA256_PLACEHOLDER"
+              end
+
+              on_arm do
+                url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-vVERSION_PLACEHOLDER/studio_VERSION_PLACEHOLDER_linux_arm64.tar.gz"
+                sha256 "LINUX_ARM64_SHA256_PLACEHOLDER"
+              end
+            end
+
+            def install
+              bin.install "studio"
+
+              # Generate and install shell completions
+              generate_completions_from_executable(bin/"studio", "completion")
+            end
+
+            test do
+              assert_match "Tokens Studio CLI", shell_output("#{bin}/studio --version")
+            end
+          end
+          FORMULA_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" "$FORMULA"
+          sed -i "s/DARWIN_AMD64_SHA256_PLACEHOLDER/${DARWIN_AMD64_SHA256}/g" "$FORMULA"
+          sed -i "s/DARWIN_ARM64_SHA256_PLACEHOLDER/${DARWIN_ARM64_SHA256}/g" "$FORMULA"
+          sed -i "s/LINUX_AMD64_SHA256_PLACEHOLDER/${LINUX_AMD64_SHA256}/g" "$FORMULA"
+          sed -i "s/LINUX_ARM64_SHA256_PLACEHOLDER/${LINUX_ARM64_SHA256}/g" "$FORMULA"
+
+          # Fix indentation (remove leading spaces from heredoc)
+          sed -i 's/^          //' "$FORMULA"
 
           echo "Updated formula:"
           cat "$FORMULA"

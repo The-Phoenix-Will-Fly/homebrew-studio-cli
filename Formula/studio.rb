@@ -3,44 +3,47 @@
 
 # Homebrew formula for Tokens Studio CLI
 #
-# Install: brew install The-Phoenix-Will-Fly/studio-cli/studio
-# Or:      brew tap The-Phoenix-Will-Fly/studio-cli && brew install studio
+# Install: brew install the-phoenix-will-fly/studio-cli/studio
+# Or:      brew tap the-phoenix-will-fly/studio-cli && brew install studio
 
 class Studio < Formula
-  desc "SOC2-compliant CLI for Tokens Studio - manage design tokens"
+  desc "Tokens Studio CLI for design token management"
   homepage "https://tokens.studio"
   version "0.0.1"
   license "MIT"
 
   on_macos do
     on_intel do
-      url "https://github.com/The-Phoenix-Will-Fly/studio-on-rails/releases/download/cli-v#{version}/studio-x86_64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_MACOS_INTEL_SHA256"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_darwin_amd64.tar.gz"
+      sha256 "PLACEHOLDER_SHA256"
     end
 
     on_arm do
-      url "https://github.com/The-Phoenix-Will-Fly/studio-on-rails/releases/download/cli-v#{version}/studio-aarch64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_MACOS_ARM_SHA256"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_darwin_arm64.tar.gz"
+      sha256 "PLACEHOLDER_SHA256"
     end
   end
 
   on_linux do
     on_intel do
-      url "https://github.com/The-Phoenix-Will-Fly/studio-on-rails/releases/download/cli-v#{version}/studio-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "PLACEHOLDER_LINUX_INTEL_SHA256"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_linux_amd64.tar.gz"
+      sha256 "PLACEHOLDER_SHA256"
     end
 
     on_arm do
-      url "https://github.com/The-Phoenix-Will-Fly/studio-on-rails/releases/download/cli-v#{version}/studio-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "PLACEHOLDER_LINUX_ARM_SHA256"
+      url "https://github.com/the-phoenix-will-fly/studio-cli/releases/download/go-cli-v#{version}/studio_#{version}_linux_arm64.tar.gz"
+      sha256 "PLACEHOLDER_SHA256"
     end
   end
 
   def install
     bin.install "studio"
+
+    # Generate and install shell completions
+    generate_completions_from_executable(bin/"studio", "completion")
   end
 
   test do
-    assert_match "studio", shell_output("#{bin}/studio --version")
+    assert_match "Tokens Studio CLI", shell_output("#{bin}/studio --version")
   end
 end
